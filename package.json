@@ -4,7 +4,8 @@
   "description": "API for video-stream web app",
   "main": "index.js",
   "scripts": {
-    "test": "npm test"
+    "test": "npm test",
+    "start-dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
