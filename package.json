@@ -15,5 +15,14 @@
   "bugs": {
     "url": "https://github.com/abanoubmesiha/video-stream-api/issues"
   },
-  "homepage": "https://github.com/abanoubmesiha/video-stream-api#readme"
+  "homepage": "https://github.com/abanoubmesiha/video-stream-api#readme",
+  "dependencies": {
+    "express": "^4.17.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.9.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.4",
+    "nodemon": "^2.0.15"
+  }
 }
