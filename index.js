@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const webrtc = require('wrtc');
 
 let senderStream;
+const comments = [];
 
 app.use(cors({
   origin: '*',
@@ -23,7 +24,7 @@ app.post('/consumer', async ({ body }, res) => {
   });
   const desc = new webrtc.RTCSessionDescription(body.sdp);
   await peer.setRemoteDescription(desc);
-  senderStream.getTracks().forEach((track) => peer.addTrack(track, senderStream));
+  senderStream?.getTracks().forEach((track) => peer.addTrack(track, senderStream));
   const answer = await peer.createAnswer();
   await peer.setLocalDescription(answer);
   const payload = {
@@ -51,6 +52,21 @@ app.post('/broadcast', async ({ body }, res) => {
   };
 
   res.json(payload);
+});
+
+app.post('/comments', async ({ body }, res) => {
+  const remoteConnection = new webrtc.RTCPeerConnection();
+  remoteConnection.ondatachannel = (e) => {
+    remoteConnection.dataChannel = e.channel;
+    remoteConnection.dataChannel.onopen = () => console.log('Connection Opened');
+    remoteConnection.dataChannel.onmessage = (ev) => console.log(`Just got a message${ev.data}`);
+  };
+  const offerDesc = new webrtc.RTCSessionDescription(body.offer);
+  await remoteConnection.setRemoteDescription(offerDesc);
+  const answer = await remoteConnection.createAnswer();
+  await remoteConnection.setLocalDescription(answer);
+
+  res.json({ answer: remoteConnection.localDescription });
 });
 
 app.listen(8000, () => console.log('Listening on port 8000...'));
