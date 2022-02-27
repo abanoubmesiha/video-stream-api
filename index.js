@@ -6,13 +6,17 @@ const bodyParser = require('body-parser');
 const webrtc = require('wrtc');
 
 let senderStream;
-const comments = [];
+const remoteConnections = [];
 
-app.use(cors({
-  origin: '*',
-}));
+app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const sendToAllRemoteConnections = (message) => {
+  remoteConnections.forEach((rc) => {
+    rc.dataChannel.send(message);
+  });
+};
 
 app.post('/consumer', async ({ body }, res) => {
   const peer = new webrtc.RTCPeerConnection({
@@ -25,6 +29,21 @@ app.post('/consumer', async ({ body }, res) => {
   const desc = new webrtc.RTCSessionDescription(body.sdp);
   await peer.setRemoteDescription(desc);
   senderStream?.getTracks().forEach((track) => peer.addTrack(track, senderStream));
+  peer.ondatachannel = (e) => {
+    peer.dataChannel = e.channel;
+    peer.dataChannel.onopen = () => {
+      remoteConnections.push(peer);
+      peer.dataChannel.send(JSON.stringify({
+        body: 'Hi from server',
+        timestamp: new Date(),
+        id: Math.random().toString().slice(2, -1),
+        connectionOwnerId: 'Server',
+      }));
+    };
+    peer.dataChannel.onmessage = (ev) => {
+      sendToAllRemoteConnections(ev.data);
+    };
+  };
   const answer = await peer.createAnswer();
   await peer.setLocalDescription(answer);
   const payload = {
@@ -52,21 +71,6 @@ app.post('/broadcast', async ({ body }, res) => {
   };
 
   res.json(payload);
-});
-
-app.post('/comments', async ({ body }, res) => {
-  const remoteConnection = new webrtc.RTCPeerConnection();
-  remoteConnection.ondatachannel = (e) => {
-    remoteConnection.dataChannel = e.channel;
-    remoteConnection.dataChannel.onopen = () => console.log('Connection Opened');
-    remoteConnection.dataChannel.onmessage = (ev) => console.log(`Just got a message${ev.data}`);
-  };
-  const offerDesc = new webrtc.RTCSessionDescription(body.offer);
-  await remoteConnection.setRemoteDescription(offerDesc);
-  const answer = await remoteConnection.createAnswer();
-  await remoteConnection.setLocalDescription(answer);
-
-  res.json({ answer: remoteConnection.localDescription });
 });
 
 app.listen(8000, () => console.log('Listening on port 8000...'));
