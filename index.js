@@ -5,7 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const webrtc = require('wrtc');
 
-let senderStream;
+let broadcastStream;
 const remoteConnections = [];
 
 app.use(cors({ origin: '*' }));
@@ -28,7 +28,7 @@ app.post('/consumer', async ({ body }, res) => {
   });
   const desc = new webrtc.RTCSessionDescription(body.sdp);
   await peer.setRemoteDescription(desc);
-  senderStream?.getTracks().forEach((track) => peer.addTrack(track, senderStream));
+  broadcastStream?.getTracks().forEach((track) => peer.addTrack(track, broadcastStream));
   peer.ondatachannel = (e) => {
     peer.dataChannel = e.channel;
     peer.dataChannel.onopen = () => {
@@ -61,7 +61,7 @@ app.post('/broadcast', async ({ body }, res) => {
       },
     ],
   });
-  peer.ontrack = (e) => { [senderStream] = e.streams; };
+  peer.ontrack = (e) => { [broadcastStream] = e.streams; };
   const desc = new webrtc.RTCSessionDescription(body.sdp);
   await peer.setRemoteDescription(desc);
   const answer = await peer.createAnswer();
